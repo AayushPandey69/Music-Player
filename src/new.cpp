@@ -10,9 +10,14 @@
 #include <locale>
 #include <random>
 
-// Helper function to get the base name of a file
+// Helper function to get the base name of a file without extension
 std::string getBaseName(const std::string& path) {
-    return path.substr(path.find_last_of("/\\") + 1);
+    std::string filename = path.substr(path.find_last_of("/\\") + 1);
+    size_t lastDotPosition = filename.find_last_of(".");
+    if (lastDotPosition != std::string::npos) {
+        return filename.substr(0, lastDotPosition);
+    }
+    return filename;
 }
 
 // Helper function to wrap text
@@ -22,7 +27,7 @@ std::string wrapText(const std::string& text, unsigned int lineLength) {
     std::istringstream iss(text);
     std::string word;
     while (iss >> word) {
-        if (line.length() + word.length() > lineLength + 15) {
+        if (line.length() + word.length() > lineLength + 20) {
             result += line + "\n";
             line = word + " ";
         } else {
@@ -50,43 +55,62 @@ MusicPlayer(const std::vector<std::string>& files)
         return currentIndex;
     }
 
-    void play() {
+void play() {
+    if (music.getStatus() != sf::SoundSource::Playing) {
         music.play();
     }
+}
 
     void pause() {
         music.pause();
     }
 
- void next() {
-    if (isShuffled) {
-        size_t currentShuffledIndex = std::find(shuffledIndices.begin(), shuffledIndices.end(), currentIndex) - shuffledIndices.begin();
-        currentShuffledIndex = (currentShuffledIndex + 1) % shuffledIndices.size();
-        currentIndex = shuffledIndices[currentShuffledIndex];
-    } else {
-        currentIndex = (currentIndex + 1) % musicFiles.size();
+  void next() {
+        if (isLooping) {
+            // If looping, restart the current song
+            if (!music.openFromFile(musicFiles[currentIndex])) {
+                std::cerr << "Error loading music file: " << musicFiles[currentIndex] << std::endl;
+            }
+        } else {
+            // Original next logic
+            if (isShuffled) {
+                size_t currentShuffledIndex = std::find(shuffledIndices.begin(), shuffledIndices.end(), currentIndex) - shuffledIndices.begin();
+                currentShuffledIndex = (currentShuffledIndex + 1) % shuffledIndices.size();
+                currentIndex = shuffledIndices[currentShuffledIndex];
+            } else {
+                currentIndex = (currentIndex + 1) % musicFiles.size();
+            }
+            if (!music.openFromFile(musicFiles[currentIndex])) {
+                std::cerr << "Error loading music file: " << musicFiles[currentIndex] << std::endl;
+            }
+        }
+        music.setLoop(isLooping);
+        music.play();
     }
-    if (!music.openFromFile(musicFiles[currentIndex])) {
-        std::cerr << "Error loading music file: " << musicFiles[currentIndex] << std::endl;
-    }
-    music.setLoop(isLooping);
-    music.play();
-}
 
-void previous() {
-    if (isShuffled) {
-        size_t currentShuffledIndex = std::find(shuffledIndices.begin(), shuffledIndices.end(), currentIndex) - shuffledIndices.begin();
-        currentShuffledIndex = (currentShuffledIndex - 1 + shuffledIndices.size()) % shuffledIndices.size();
-        currentIndex = shuffledIndices[currentShuffledIndex];
-    } else {
-        currentIndex = (currentIndex - 1 + musicFiles.size()) % musicFiles.size();
+ void previous() {
+        if (isLooping) {
+            // If looping, restart the current song
+            if (!music.openFromFile(musicFiles[currentIndex])) {
+                std::cerr << "Error loading music file: " << musicFiles[currentIndex] << std::endl;
+            }
+        } else {
+            // Original previous logic
+            if (isShuffled) {
+                size_t currentShuffledIndex = std::find(shuffledIndices.begin(), shuffledIndices.end(), currentIndex) - shuffledIndices.begin();
+                currentShuffledIndex = (currentShuffledIndex - 1 + shuffledIndices.size()) % shuffledIndices.size();
+                currentIndex = shuffledIndices[currentShuffledIndex];
+            } else {
+                currentIndex = (currentIndex - 1 + musicFiles.size()) % musicFiles.size();
+            }
+            if (!music.openFromFile(musicFiles[currentIndex])) {
+                std::cerr << "Error loading music file: " << musicFiles[currentIndex] << std::endl;
+            }
+        }
+        music.setLoop(isLooping);
+        music.play();
     }
-    if (!music.openFromFile(musicFiles[currentIndex])) {
-        std::cerr << "Error loading music file: " << musicFiles[currentIndex] << std::endl;
-    }
-    music.setLoop(isLooping);
-    music.play();
-}
+
 
     void shufflePlaylist() {
     std::random_shuffle(shuffledIndices.begin(), shuffledIndices.end());
@@ -426,6 +450,7 @@ else if (prevButton.getGlobalBounds().contains(event.mouseButton.x, event.mouseB
                 }
                 else if (searchBar.getGlobalBounds().contains(event.mouseButton.x, event.mouseButton.y)) {
     isSearchBarActive = true;
+    currentPage = Page::Home;
      search.setString("");
     searchBar.setFillColor(sf::Color(80, 80, 80)); // Lighter color when active
     cursorBlinkClock.restart();
@@ -437,27 +462,30 @@ else {
 }
 
                 // Check if a song is clicked
-                if (currentPage == Page::Home) {
-                    const auto& displayFiles = searchQuery.empty() ? musicFiles : filteredMusicFiles;
-                    for (size_t i = 0; i < displayFiles.size(); ++i) {
-                        sf::Text songText;
-                        songText.setFont(font);
-                        songText.setString(getBaseName(displayFiles[i]));
-                        songText.setCharacterSize(30);
-                        songText.setFillColor(sf::Color::White);
-                        songText.setPosition(220.0f, 60.0f + i * 60.0f);
+// Check if a song is clicked
+        if (currentPage == Page::Home) {
+            const auto& displayFiles = searchQuery.empty() ? musicFiles : filteredMusicFiles;
+            for (size_t i = 0; i < displayFiles.size(); ++i) {
+                sf::Text songText;
+                songText.setFont(font);
+                songText.setString(getBaseName(displayFiles[i]));
+                songText.setCharacterSize(30);
+                songText.setFillColor(sf::Color::White);
+                songText.setPosition(220.0f, 60.0f + i * 60.0f);
 
-if (songText.getGlobalBounds().contains(event.mouseButton.x, event.mouseButton.y)) {
-    player.playSong(i);
-    player.play();  // Add this line
-    playPauseButton.setTexture(pauseTexture);
-    currentSong = getBaseName(displayFiles[i]);
-    currentPage = Page::NowPlaying;
-    clickedSongIndex = i;
-    break;
-}
+                if (songText.getGlobalBounds().contains(event.mouseButton.x, event.mouseButton.y)) {
+                    if (i != player.getCurrentIndex() || player.getStatus() != sf::SoundSource::Playing) {
+                        player.playSong(i);
+                        player.play();
+                        playPauseButton.setTexture(pauseTexture);
                     }
+                    currentSong = getBaseName(displayFiles[i]);
+                    currentPage = Page::NowPlaying;
+                    clickedSongIndex = i;
+                    break;
                 }
+            }
+        }
             }
             else if (event.type == sf::Event::MouseMoved) {
                 if (progressBar.getGlobalBounds().contains(event.mouseMove.x, event.mouseMove.y) && player.getStatus() == sf::SoundSource::Playing) {
@@ -597,7 +625,7 @@ if (songText.getGlobalBounds().contains(event.mouseButton.x, event.mouseButton.y
             std::string wrappedSongName = wrapText(currentSong, 30);  // Limit to 30 characters per line
             songNameText.setString(wrappedSongName);
             songNameText.setCharacterSize(50);
-            songNameText.setFillColor(sf::Color::Red);
+            songNameText.setFillColor(sf::Color::White);
             songNameText.setPosition((windowWidth - songNameText.getLocalBounds().width) / 2, 100.0f);
             window.draw(songNameText);
 
