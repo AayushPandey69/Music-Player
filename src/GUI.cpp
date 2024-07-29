@@ -101,7 +101,7 @@ void GUI::initializeGUI() {
     searchText.setPosition(15.0f, 15.0f);
 
     // Set up sidebar texts
-    std::vector<std::string> sidebarOptions = { "Home", "Playlists", "Now\nPlaying" };
+    std::vector<std::string> sidebarOptions = { "Home", "Now\nPlaying" };
     for (size_t i = 0; i < sidebarOptions.size(); ++i) {
         sf::Text text;
         text.setFont(font);
@@ -176,9 +176,6 @@ void GUI::handleMouseClick(const sf::Event::MouseButtonEvent& mouseButton) {
         currentPage = Page::Home;
     }
     else if (sidebarTexts[1].getGlobalBounds().contains(mouseButton.x, mouseButton.y)) {
-        currentPage = Page::Playlists;
-    }
-    else if (sidebarTexts[2].getGlobalBounds().contains(mouseButton.x, mouseButton.y)) {
         currentPage = Page::NowPlaying;
     }
     else if (progressBar.getGlobalBounds().contains(mouseButton.x, mouseButton.y) && player.getStatus() == sf::SoundSource::Playing) {
@@ -265,9 +262,6 @@ void GUI::draw() {
     case Page::Home:
         drawHomePage();
         break;
-    case Page::Playlists:
-        drawPlaylistsPage();
-        break;
     case Page::NowPlaying:
         drawNowPlayingPage();
         break;
@@ -303,31 +297,6 @@ void GUI::drawHomePage() {
     }
 }
 
-void GUI::drawPlaylistsPage() {
-    std::vector<std::string> playlists = {
-        "Favorites",
-        "Chill Vibes",
-        "Workout Mix"
-    };
-
-    for (size_t i = 0; i < playlists.size(); ++i) {
-        sf::RectangleShape playlistButton(sf::Vector2f(window.getSize().x - 220.0f, 50.0f));
-        playlistButton.setPosition(210.0f, 60.0f + i * 60.0f);
-        playlistButton.setFillColor(sf::Color(70, 70, 70));
-        playlistButton.setOutlineColor(sf::Color::Black);
-        playlistButton.setOutlineThickness(2.0f);
-
-        window.draw(playlistButton);
-
-        sf::Text playlistText;
-        playlistText.setFont(font);
-        playlistText.setString(playlists[i]);
-        playlistText.setCharacterSize(30);
-        playlistText.setFillColor(sf::Color::White);
-        playlistText.setPosition(220.0f, 60.0f + i * 60.0f + 10.0f);
-        window.draw(playlistText);
-        }
-}
 
 void GUI::drawNowPlayingPage() {
     sf::Text songNameText;

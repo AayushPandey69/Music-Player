@@ -13,7 +13,7 @@ LDFLAGS := -L"$(SFML_LIB_PATH)" -lsfml-graphics -lsfml-window -lsfml-system -lsf
 TARGET := music-app.exe
 
 # Define the source files and object files
-SRCS := new.cpp
+SRCS := main.cpp GUI.cpp MusicPlayer.cpp Utilities.cpp
 OBJS := $(SRCS:.cpp=.o)
 
 # The default target to build

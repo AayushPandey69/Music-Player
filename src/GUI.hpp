@@ -4,7 +4,7 @@
 #include <SFML/Audio.hpp>
 #include "MusicPlayer.hpp"
 
-enum class Page { Home, Playlists, NowPlaying };
+enum class Page { Home, NowPlaying };
 
 class GUI {
 public:
@@ -20,7 +20,6 @@ private:
     void handleMouseRelease(const sf::Event::MouseButtonEvent& mouseButton);
     void handleTextEntered(const sf::Event::TextEvent& text);
     void drawHomePage();
-    void drawPlaylistsPage();
     void drawNowPlayingPage();
     void drawAnimationBars(const sf::Vector2f& position);
     void drawSearchCursor();
