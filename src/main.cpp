@@ -3,30 +3,44 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <filesystem>
 #include "MusicPlayer.hpp"
 #include "GUI.hpp"
 #include "Utilities.hpp"
 #include <algorithm>
 
+namespace fs = std::filesystem;
+
+std::vector<std::string> getSongsFromDirectory(const std::string& directoryPath) {
+    std::vector<std::string> musicFiles;
+    
+    for (const auto & entry : fs::directory_iterator(directoryPath)) {
+        if (entry.is_regular_file()) {
+            std::string extension = entry.path().extension().string();
+            if (extension == ".mp3" || extension == ".wav" || extension == ".ogg") {
+                musicFiles.push_back(entry.path().string());
+            }
+        }
+    }
+    
+    return musicFiles;
+}
+
 int main() {
     // Get desktop mode and reduce height by a bit to avoid overlapping the taskbar
     sf::VideoMode desktopMode = sf::VideoMode::getDesktopMode();
-    sf::RenderWindow window(sf::VideoMode(desktopMode.width - 3, desktopMode.height - 97), "SFML Music Player", sf::Style::Default);
+    sf::RenderWindow window(sf::VideoMode(desktopMode.width - 3, desktopMode.height - 90), "SFML Music Player", sf::Style::Default);
+
+    // Get the songs from the Songs directory
+    std::string songsDirectory = "../Songs";
+    std::vector<std::string> musicFiles = getSongsFromDirectory(songsDirectory);
+
+    if (musicFiles.empty()) {
+        std::cerr << "No music files found in the Songs directory." << std::endl;
+        return 1;
+    }
 
     // Create the music player
-    std::vector<std::string> musicFiles = {
-        "../Songs/Pink_Floyd_High_Hopes_Official.wav",
-        "../Songs/Red_Hot_Chili_Peppers - Otherside.wav",
-        "../Songs/Purnimako Chandramalai Cover by Daya Sagar Baral.mp3",
-        "../Songs/Queen - I Want To Break Free (Official Video).mp3",
-        "../Songs/Kun Faya Kun Full Video Song Rockstar  Ranbir Kapoor  A.R. Rahman, Javed Ali, Mohit Chauhan.mp3",
-        "../Songs/The Weeknd - Blinding Lights (Official Video).mp3",
-        "../Songs/Kendrick Lamar - Not Like Us.mp3",
-        "../Songs/Travis Scott - FE!N ft. Playboi Carti.mp3",
-        "../Songs/Creedence Clearwater Revival - Have You Ever Seen The Rain (Official).mp3",
-        "../Songs/Ed Sheeran - Perfect .mp3",
-        "../Songs/China Company  Bro Sis  Nepali Song.mp3"
-    };
     MusicPlayer player(musicFiles);
 
     GUI gui(window, player);
