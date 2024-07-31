@@ -5,14 +5,31 @@
 
 enum class Page { Home, NowPlaying };
 
-class GUI {
+// New base class
+class BaseGUI {
+public:
+    BaseGUI(sf::RenderWindow& window, MusicPlayer& player) : window(window), player(player) {}
+    virtual ~BaseGUI() = default;
+
+    virtual void handleEvents() = 0;
+    virtual void update() = 0;
+    virtual void draw() = 0;
+
+protected:
+    sf::RenderWindow& window;
+    MusicPlayer& player;
+};
+
+// Existing GUI class, now derived from BaseGUI
+class GUI : public BaseGUI {
 public:
     GUI(sf::RenderWindow& window, MusicPlayer& player);
-    void handleEvents();
-    void update();
-    void draw();
+    void handleEvents() override;
+    void update() override;
+    void draw() override;
 
 private:
+    // All existing private members and methods remain unchanged
     void initializeGUI();
     void handleMouseClick(const sf::Event::MouseButtonEvent& mouseButton);
     void handleMouseMove(const sf::Event::MouseMoveEvent& mouseMove);
@@ -36,13 +53,9 @@ private:
     void drawOscilloscope();
     void drawSpectrum();
     void drawBars();
-
-    // New functions for time display
     void updateTimeDisplay();
     std::string formatTime(int seconds);
 
-    sf::RenderWindow& window;
-    MusicPlayer& player;
     Page currentPage;
     bool isSearchBarActive;
     int clickedSongIndex;
@@ -64,7 +77,7 @@ private:
     std::vector<std::string> filteredMusicFiles;
     static constexpr float barMaxHeight = 20.0f;
 
-    // New member variables for time display
+    // Time display
     sf::Text currentTimeText;
     sf::Text totalTimeText;
 };

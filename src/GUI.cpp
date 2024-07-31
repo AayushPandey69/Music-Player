@@ -7,7 +7,7 @@
 #include <sstream>
 
 GUI::GUI(sf::RenderWindow& window, MusicPlayer& player)
-    : window(window), player(player), currentPage(Page::Home), isSearchBarActive(false), clickedSongIndex(-1) {
+    : BaseGUI(window, player), currentPage(Page::Home), isSearchBarActive(false), clickedSongIndex(-1) {
     initializeGUI();
 }
 
