@@ -357,7 +357,8 @@ void GUI::drawHomePage() {
         songText.setPosition(320.0f, 60.0f + i * 60.0f + 10.0f);
         window.draw(songText);
 
-        if (i == clickedSongIndex && player.getStatus() == sf::SoundSource::Playing) {
+        size_t originalIndex = std::distance(player.getMusicFiles().begin(), it);
+        if (originalIndex == clickedSongIndex && player.getStatus() == sf::SoundSource::Playing) {
             drawAnimationBars(songButton.getPosition());
         }
     }
