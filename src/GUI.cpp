@@ -3,7 +3,8 @@
 #include <iostream>
 #include <algorithm>
 #include <cmath>
-
+#include <iomanip>
+#include <sstream>
 
 GUI::GUI(sf::RenderWindow& window, MusicPlayer& player)
     : window(window), player(player), currentPage(Page::Home), isSearchBarActive(false), clickedSongIndex(-1) {
@@ -51,28 +52,32 @@ void GUI::initializeGUI() {
     loopButton.setPosition(playPauseButton.getPosition().x + 4 * buttonWidth, yPosition);
     volumeButton.setPosition(10, yPosition);
 
+    // Define new widths
+    float sidebarWidth = 300.0f; // New width for the sidebar
+
     // Set up shapes
-    sidebar.setSize(sf::Vector2f(200.0f, windowHeight));
+    sidebar.setSize(sf::Vector2f(sidebarWidth, windowHeight));
     sidebar.setFillColor(sf::Color(30, 30, 30));
 
-    contentArea.setSize(sf::Vector2f(windowWidth - 200.0f, windowHeight));
-    contentArea.setPosition(200.0f, 0.0f);
+    contentArea.setSize(sf::Vector2f(windowWidth - sidebarWidth, windowHeight));
+    contentArea.setPosition(sidebarWidth, 0.0f);
     contentArea.setFillColor(sf::Color(40, 40, 40));
 
     controlBar.setSize(sf::Vector2f(windowWidth, 100.0f));
     controlBar.setPosition(0.0f, windowHeight - 100.0f);
     controlBar.setFillColor(sf::Color(20, 20, 20));
 
-    searchBar.setSize(sf::Vector2f(180.0f, 30.0f));
+    searchBar.setSize(sf::Vector2f(280.0f, 40.0f)); // Increased width for the search bar
     searchBar.setPosition(10.0f, 10.0f);
     searchBar.setFillColor(sf::Color(50, 50, 50));
 
-    progressBar.setSize(sf::Vector2f(window.getSize().x - 240.0f, 15.0f));
-    progressBar.setPosition(220.0f, windowHeight - 135.0f);
+    float progressBarWidth = window.getSize().x - sidebarWidth - 140.0f; // Reduced width
+    progressBar.setSize(sf::Vector2f(progressBarWidth, 15.0f));
+    progressBar.setPosition(sidebarWidth + 70.0f, windowHeight - 135.0f);
     progressBar.setFillColor(sf::Color(60, 60, 60));
 
     progressFill.setSize(sf::Vector2f(0, 15.0f));
-    progressFill.setPosition(220.0f, windowHeight - 135.0f);
+    progressFill.setPosition(progressBar.getPosition());
     progressFill.setFillColor(sf::Color(29, 185, 84));
 
     volumeSliderBackground.setSize(sf::Vector2f(120.0f, 10.0f));
@@ -87,16 +92,25 @@ void GUI::initializeGUI() {
     if (!font.loadFromFile("../Fonts/ARIAL.ttf")) {
         std::cerr << "Error loading font" << std::endl;
     }
+    currentTimeText.setFont(font);
+    currentTimeText.setCharacterSize(20);
+    currentTimeText.setFillColor(sf::Color::White);
+
+    totalTimeText.setFont(font);
+    totalTimeText.setCharacterSize(20);
+    totalTimeText.setFillColor(sf::Color::White);
+
+    updateTimeDisplay();
 
     // Set up text
     search.setFont(font);
     search.setString("Search");
-    search.setCharacterSize(20);
+    search.setCharacterSize(23);
     search.setFillColor(sf::Color(200, 200, 200));
     search.setPosition(15.0f, 15.0f);
 
     searchText.setFont(font);
-    searchText.setCharacterSize(20);
+    searchText.setCharacterSize(25);
     searchText.setFillColor(sf::Color::White);
     searchText.setPosition(15.0f, 15.0f);
 
@@ -108,7 +122,7 @@ void GUI::initializeGUI() {
         text.setString(sidebarOptions[i]);
         text.setCharacterSize(40);
         text.setFillColor(sf::Color::White);
-        text.setPosition(10.0f, 60.0f + i * 120.0f);
+        text.setPosition(20.0f, 60.0f + i * 130.0f);
         sidebarTexts.push_back(text);
     }
 
@@ -122,6 +136,38 @@ void GUI::initializeGUI() {
 
     currentSong = ""; // Initialize with empty string
     playPauseButton.setTexture(playTexture);
+}
+
+void GUI::updateTimeDisplay() {
+        if (player.hasStartedPlaying()) {
+            float totalDuration = player.getTotalDuration();
+            float currentPosition = player.getPlaybackPosition();
+
+            int currentSeconds = static_cast<int>(currentPosition);
+            int totalSeconds = static_cast<int>(totalDuration);
+
+            currentTimeText.setString(formatTime(currentSeconds));
+            totalTimeText.setString(formatTime(totalSeconds));
+
+            // Position the time texts
+            currentTimeText.setPosition(progressBar.getPosition().x - currentTimeText.getLocalBounds().width - 10,
+                progressBar.getPosition().y - currentTimeText.getLocalBounds().height - 5);
+            totalTimeText.setPosition(progressBar.getPosition().x + progressBar.getSize().x + 10,
+                progressBar.getPosition().y - totalTimeText.getLocalBounds().height - 5);
+        } else {
+            currentTimeText.setString("--:--");
+            totalTimeText.setString("--:--");
+        }
+}
+
+
+std::string GUI::formatTime(int seconds) {
+    int minutes = seconds / 60;
+    int remainingSeconds = seconds % 60;
+    std::stringstream ss;
+    ss << std::setfill('0') << std::setw(2) << minutes << ":"
+        << std::setfill('0') << std::setw(2) << remainingSeconds;
+    return ss.str();
 }
 
 void GUI::handleEvents() {
@@ -223,7 +269,15 @@ void GUI::handleTextEntered(const sf::Event::TextEvent& text) {
 }
 
 void GUI::update() {
+    if (player.hasStartedPlaying() && player.isCurrentSongFinished()) {
+        player.next();
+        player.play();
+        playPauseButton.setTexture(pauseTexture);
+        currentSong = getBaseName(player.getCurrentSong());
+        clickedSongIndex = player.getCurrentIndex();
+    }
     updateProgressBar();
+    updateTimeDisplay();  // Add this line if it's not already there
 }
 
 void GUI::draw() {
@@ -255,6 +309,13 @@ void GUI::draw() {
     window.draw(progressBar);
     window.draw(progressFill);
 
+    if (clickedSongIndex != -1) {
+        window.draw(currentTimeText);
+        window.draw(totalTimeText);
+    }
+    window.draw(currentTimeText);
+    window.draw(totalTimeText);
+
     window.draw(volumeSliderBackground);
     window.draw(volumeFill);
 
@@ -274,11 +335,16 @@ void GUI::drawHomePage() {
     const auto& displayFiles = searchQuery.empty() ? player.getMusicFiles() : filteredMusicFiles;
     for (size_t i = 0; i < displayFiles.size(); ++i) {
         sf::RectangleShape songButton(sf::Vector2f(window.getSize().x - 220.0f, 50.0f));
-        songButton.setPosition(210.0f, 60.0f + i * 60.0f);
+        songButton.setPosition(300.0f, 60.0f + i * 60.0f);
         songButton.setFillColor(sf::Color(70, 70, 70));
-        
-        if (i == clickedSongIndex) {
-            songButton.setFillColor(sf::Color::Red);
+
+        // Find the index of this song in the original music files
+        auto it = std::find(player.getMusicFiles().begin(), player.getMusicFiles().end(), displayFiles[i]);
+        if (it != player.getMusicFiles().end()) {
+            size_t originalIndex = std::distance(player.getMusicFiles().begin(), it);
+            if (originalIndex == clickedSongIndex) {
+                songButton.setFillColor(sf::Color::Red);
+            }
         }
 
         window.draw(songButton);
@@ -288,7 +354,7 @@ void GUI::drawHomePage() {
         songText.setString(getBaseName(displayFiles[i]));
         songText.setCharacterSize(30);
         songText.setFillColor(sf::Color::White);
-        songText.setPosition(220.0f, 60.0f + i * 60.0f + 10.0f);
+        songText.setPosition(320.0f, 60.0f + i * 60.0f + 10.0f);
         window.draw(songText);
 
         if (i == clickedSongIndex && player.getStatus() == sf::SoundSource::Playing) {
@@ -298,6 +364,7 @@ void GUI::drawHomePage() {
 }
 
 
+
 void GUI::drawNowPlayingPage() {
     sf::Text songNameText;
     songNameText.setFont(font);
@@ -305,16 +372,97 @@ void GUI::drawNowPlayingPage() {
     songNameText.setString(wrappedSongName);
     songNameText.setCharacterSize(50);
     songNameText.setFillColor(sf::Color::White);
-    songNameText.setPosition((window.getSize().x - songNameText.getLocalBounds().width) / 2, 100.0f);
+    songNameText.setPosition(contentArea.getPosition().x + (contentArea.getSize().x - songNameText.getLocalBounds().width) / 2,
+        contentArea.getPosition().y + 50.0f);
     window.draw(songNameText);
 
-    float largeBarMaxHeight = 100.0f;
-    for (int i = 0; i < 20; ++i) {
-        float height = (std::sin(clock.getElapsedTime().asSeconds() * 5 + i) + 1) * largeBarMaxHeight / 2;
-        sf::RectangleShape bar(sf::Vector2f(15.0f, height));
+    // Determine which animation to show based on time
+    int animationIndex = static_cast<int>(clock.getElapsedTime().asSeconds() / 10) % 3;
+
+    switch (animationIndex) {
+    case 0:
+        drawBars();
+        break;
+    case 1:
+        drawSpectrum();
+        break;
+    case 2:
+        drawOscilloscope();
+        break;
+    }
+}
+
+void GUI::drawBars() {
+    const int barCount = 20;
+    const float barWidth = 15.0f;
+    const float maxBarHeight = 200.0f;
+    const float spacing = 5.0f;
+    const float startX = contentArea.getPosition().x + (contentArea.getSize().x - (barCount * (barWidth + spacing) - spacing)) / 2;
+    const float startY = contentArea.getPosition().y + contentArea.getSize().y / 2 + maxBarHeight / 2;
+
+    for (int i = 0; i < barCount; ++i) {
+        float height = (std::sin(clock.getElapsedTime().asSeconds() * 5 + i * 0.5f) + 1) * maxBarHeight / 2;
+        sf::RectangleShape bar(sf::Vector2f(barWidth, height));
         bar.setFillColor(sf::Color(29, 185, 84));
-        bar.setPosition(window.getSize().x / 2 - 200.0f + i * 20.0f, window.getSize().y / 2 - height / 2);
+        bar.setPosition(startX + i * (barWidth + spacing), startY - height);
         window.draw(bar);
+    }
+}
+
+void GUI::drawSpectrum() {
+    const int pointCount = 100;
+    sf::VertexArray spectrum(sf::LineStrip, pointCount);
+    const float width = contentArea.getSize().x;
+    const float height = 200.0f;
+    const float startX = contentArea.getPosition().x;
+    const float startY = contentArea.getPosition().y + contentArea.getSize().y / 2;
+
+    for (int i = 0; i < pointCount; ++i) {
+        float x = startX + (static_cast<float>(i) / pointCount) * width;
+        float y = startY - std::sin(x * 0.05f + clock.getElapsedTime().asSeconds() * 5) * height / 2;
+        spectrum[i].position = sf::Vector2f(x, y);
+        spectrum[i].color = sf::Color(29, 185, 84);
+    }
+
+    // Draw the thick line
+    sf::RectangleShape thickLine;
+    thickLine.setFillColor(sf::Color(29, 185, 84));
+
+    for (int i = 0; i < pointCount - 1; ++i) {
+        sf::Vector2f point1 = spectrum[i].position;
+        sf::Vector2f point2 = spectrum[i + 1].position;
+
+        sf::Vector2f direction = point2 - point1;
+        float length = std::sqrt(direction.x * direction.x + direction.y * direction.y);
+
+        thickLine.setSize(sf::Vector2f(length, 5.0f)); // Increased thickness to 5.0f
+        thickLine.setPosition(point1);
+        thickLine.setRotation(std::atan2(direction.y, direction.x) * 180 / 3.14159f);
+
+        window.draw(thickLine);
+    }
+}
+
+void GUI::drawOscilloscope() {
+    const int pointCount = 200;
+    const int lineCount = 10; // Number of lines to draw for thickness
+    const float lineSpacing = 2.0f; // Spacing between lines
+    sf::VertexArray oscilloscope(sf::LineStrip, pointCount);
+    const float width = contentArea.getSize().x;
+    const float height = 200.0f;
+    const float startX = contentArea.getPosition().x;
+    const float startY = contentArea.getPosition().y + contentArea.getSize().y / 2;
+
+    for (int line = 0; line < lineCount; ++line) {
+        for (int i = 0; i < pointCount; ++i) {
+            float x = startX + (static_cast<float>(i) / pointCount) * width;
+            float y = startY + std::sin(x * 0.1f + clock.getElapsedTime().asSeconds() * 10) * height / 4
+                + std::cos(x * 0.05f + clock.getElapsedTime().asSeconds() * 5) * height / 4;
+            y += line * lineSpacing - (lineCount - 1) * lineSpacing / 2; // Offset each line
+            oscilloscope[i].position = sf::Vector2f(x, y);
+            oscilloscope[i].color = sf::Color(29, 185, 84);
+        }
+        window.draw(oscilloscope);
     }
 }
 
@@ -363,10 +511,21 @@ void GUI::toggleLoop() {
 }
 
 void GUI::setProgressFromMouseClick(float mouseX) {
-    float position = (mouseX - progressBar.getPosition().x) / progressBar.getSize().x;
-    position = std::clamp(position, 0.0f, 1.0f);
-    player.setPlaybackPosition(position);
+    float clickPosition = (mouseX - progressBar.getPosition().x) / progressBar.getSize().x;
+    clickPosition = std::clamp(clickPosition, 0.0f, 1.0f);
+    
+    float totalDuration = player.getTotalDuration();
+    float newPosition = clickPosition * totalDuration;
+    
+    player.setPlaybackPosition(newPosition);
+    
+    // Update the progress bar visually
+    updateProgressBar();
+    
+    // Update the time display
+    updateTimeDisplay();
 }
+
 
 void GUI::setVolumeFromMouseClick(float mouseX) {
     float volume = (mouseX - volumeSliderBackground.getPosition().x) / volumeSliderBackground.getSize().x;
@@ -378,19 +537,22 @@ void GUI::setVolumeFromMouseClick(float mouseX) {
 void GUI::activateSearchBar() {
     isSearchBarActive = true;
     currentPage = Page::Home;
-    search.setString("");
+    search.setString(""); // Clear the search text when activating
     searchBar.setFillColor(sf::Color(80, 80, 80));
     cursorBlinkClock.restart();
 }
 
 void GUI::deactivateSearchBar() {
-    search.setString("Search");
+    // Check if there was any text in the search bar before setting the placeholder
+    if (search.getString().isEmpty()) {
+        search.setString("Search");
+    }
     isSearchBarActive = false;
     searchBar.setFillColor(sf::Color(50, 50, 50));
 }
 
 void GUI::updateProgressBar() {
-    float progress = player.getPlaybackPosition();
+    float progress = player.getPlaybackPercentage();
     progressFill.setSize(sf::Vector2f(progress * progressBar.getSize().x, progressFill.getSize().y));
 }
 
@@ -410,24 +572,26 @@ void GUI::updateVolumeSliderPreview(float mouseX) {
 void GUI::handleHomePageClick(const sf::Event::MouseButtonEvent& mouseButton) {
     const auto& displayFiles = searchQuery.empty() ? player.getMusicFiles() : filteredMusicFiles;
     for (size_t i = 0; i < displayFiles.size(); ++i) {
-        sf::Text songText;
-        songText.setFont(font);
-        songText.setString(getBaseName(displayFiles[i]));
-        songText.setCharacterSize(30);
-        songText.setFillColor(sf::Color::White);
-        songText.setPosition(220.0f, 60.0f + i * 60.0f);
+        sf::RectangleShape songButton(sf::Vector2f(window.getSize().x - 220.0f, 50.0f));
+        songButton.setPosition(300.0f, 60.0f + i * 60.0f);
 
-        if (songText.getGlobalBounds().contains(mouseButton.x, mouseButton.y)) {
-            if (i != player.getCurrentIndex() || player.getStatus() != sf::SoundSource::Playing) {
-                player.playSong(i);
-                player.play();
-                playPauseButton.setTexture(pauseTexture);
+        if (songButton.getGlobalBounds().contains(mouseButton.x, mouseButton.y)) {
+            // Find the index of the clicked song in the original music files
+            auto it = std::find(player.getMusicFiles().begin(), player.getMusicFiles().end(), displayFiles[i]);
+            if (it != player.getMusicFiles().end()) {
+                size_t originalIndex = std::distance(player.getMusicFiles().begin(), it);
+
+                if (originalIndex != player.getCurrentIndex() || player.getStatus() != sf::SoundSource::Playing) {
+                    player.playSong(originalIndex);
+                    player.play();
+                    playPauseButton.setTexture(pauseTexture);
+                }
+                currentSong = getBaseName(displayFiles[i]);
+                currentPage = Page::NowPlaying;
+                clickedSongIndex = originalIndex;
+                updateTimeDisplay();  // Update the time display immediately
+                break;
             }
-            currentSong = getBaseName(displayFiles[i]);
-            currentPage = Page::NowPlaying;
-            clickedSongIndex = i;
-            break;
         }
     }
 }
-

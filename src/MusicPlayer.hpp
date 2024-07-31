@@ -10,7 +10,7 @@
 class MusicPlayer {
 public:
     MusicPlayer(const std::vector<std::string>& files);
-    
+    const sf::Music& getMusic() const { return music; }
     void play();
     void pause();
     void next();
@@ -19,19 +19,23 @@ public:
     void shuffle(bool on);
     void loop(bool on);
     void playSong(size_t index);
-
+    bool isCurrentSongFinished() const;
+    bool hasStartedPlaying() const;
+    void setHasStartedPlaying(bool hasStarted);
+    float getTotalDuration() const;
+    float getPlaybackPosition() const;
+    void setPlaybackPosition(float position);
+    float getPlaybackPercentage() const;
 
     const std::vector<std::string>& getMusicFiles() const {
         return musicFiles;
     }
-    
+
     sf::SoundSource::Status getStatus() const;
     size_t getCurrentIndex() const;
     bool getIsShuffled() const;
     bool getIsLooping() const;
     std::string getCurrentSong() const;
-    float getPlaybackPosition() const;
-    void setPlaybackPosition(float position);
     float getVolume() const;
     void setVolume(float volume);
 
@@ -42,6 +46,8 @@ private:
     size_t currentIndex;
     bool isShuffled;
     bool isLooping;
+    std::mt19937 rng;
+    bool startedPlaying = false;
 };
 
 #endif // MUSICPLAYER_HPP

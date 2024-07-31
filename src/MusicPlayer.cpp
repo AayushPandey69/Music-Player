@@ -1,8 +1,9 @@
 #include "MusicPlayer.hpp"
 #include <iostream>
+#include <algorithm>  // Include this for std::shuffle
 
 MusicPlayer::MusicPlayer(const std::vector<std::string>& files)
-    : musicFiles(files), currentIndex(0), isShuffled(false), isLooping(false) {
+    : musicFiles(files), currentIndex(0), isShuffled(false), isLooping(false), rng(std::random_device{}()) {
     for (size_t i = 0; i < musicFiles.size(); ++i) {
         shuffledIndices.push_back(i);
     }
@@ -12,6 +13,7 @@ MusicPlayer::MusicPlayer(const std::vector<std::string>& files)
 void MusicPlayer::play() {
     if (music.getStatus() != sf::SoundSource::Playing) {
         music.play();
+        startedPlaying = true;
     }
 }
 
@@ -25,7 +27,8 @@ void MusicPlayer::next() {
         if (it != shuffledIndices.end()) {
             currentIndex = shuffledIndices[(std::distance(shuffledIndices.begin(), it) + 1) % shuffledIndices.size()];
         }
-    } else {
+    }
+    else {
         currentIndex = (currentIndex + 1) % musicFiles.size();
     }
 
@@ -33,9 +36,8 @@ void MusicPlayer::next() {
         std::cerr << "Error loading music file: " << musicFiles[currentIndex] << std::endl;
     }
     music.setLoop(isLooping);
-    if (music.getStatus() == sf::SoundSource::Playing) {
-        music.play();
-    }
+    music.play();
+    
 }
 
 void MusicPlayer::previous() {
@@ -43,20 +45,31 @@ void MusicPlayer::previous() {
         if (isShuffled) {
             size_t currentPosition = std::find(shuffledIndices.begin(), shuffledIndices.end(), currentIndex) - shuffledIndices.begin();
             currentIndex = shuffledIndices[(currentPosition - 1 + shuffledIndices.size()) % shuffledIndices.size()];
-        } else {
+        }
+        else {
             currentIndex = (currentIndex - 1 + musicFiles.size()) % musicFiles.size();
         }
     }
-    
+
     if (!music.openFromFile(musicFiles[currentIndex])) {
         std::cerr << "Error loading music file: " << musicFiles[currentIndex] << std::endl;
     }
     music.setLoop(isLooping);
     music.play();
 }
+bool MusicPlayer::isCurrentSongFinished() const {
+    return music.getStatus() == sf::SoundSource::Stopped;
+}
 
+bool MusicPlayer::hasStartedPlaying() const {
+    return startedPlaying;
+}
+
+void MusicPlayer::setHasStartedPlaying(bool hasStarted) {
+    startedPlaying = hasStarted;
+}
 void MusicPlayer::shufflePlaylist() {
-    std::random_shuffle(shuffledIndices.begin(), shuffledIndices.end());
+    std::shuffle(shuffledIndices.begin(), shuffledIndices.end(), rng);
 }
 
 void MusicPlayer::shuffle(bool on) {
@@ -106,13 +119,33 @@ std::string MusicPlayer::getCurrentSong() const {
     return musicFiles[currentIndex];
 }
 
+float MusicPlayer::getTotalDuration() const {
+        if (music.getDuration().asSeconds() > 0) {
+            return music.getDuration().asSeconds();
+        }
+        return 0.f;  // Return 0 if no valid duration
+    }
+
 float MusicPlayer::getPlaybackPosition() const {
-    return music.getPlayingOffset().asSeconds() / music.getDuration().asSeconds();
-}
+        if (music.getStatus() == sf::Music::Playing || music.getStatus() == sf::Music::Paused) {
+            return music.getPlayingOffset().asSeconds();
+        }
+        return 0.f;
+    }
+
+float MusicPlayer::getPlaybackPercentage() const {
+        float duration = getTotalDuration();
+        if (duration > 0) {
+            return getPlaybackPosition() / duration;
+        }
+        return 0.f;
+    }
 
 void MusicPlayer::setPlaybackPosition(float position) {
-    music.setPlayingOffset(sf::seconds(position * music.getDuration().asSeconds()));
-}
+        if (position >= 0 && position <= getTotalDuration()) {
+            music.setPlayingOffset(sf::seconds(position));
+        }
+    }
 
 float MusicPlayer::getVolume() const {
     return music.getVolume();

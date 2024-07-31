@@ -1,5 +1,4 @@
 #pragma once
-
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio.hpp>
 #include "MusicPlayer.hpp"
@@ -34,6 +33,13 @@ private:
     void updateProgressBarPreview(float mouseX);
     void updateVolumeSliderPreview(float mouseX);
     void handleHomePageClick(const sf::Event::MouseButtonEvent& mouseButton);
+    void drawOscilloscope();
+    void drawSpectrum();
+    void drawBars();
+
+    // New functions for time display
+    void updateTimeDisplay();
+    std::string formatTime(int seconds);
 
     sf::RenderWindow& window;
     MusicPlayer& player;
@@ -56,6 +62,9 @@ private:
     std::string searchQuery;
     std::string currentSong;
     std::vector<std::string> filteredMusicFiles;
-
     static constexpr float barMaxHeight = 20.0f;
+
+    // New member variables for time display
+    sf::Text currentTimeText;
+    sf::Text totalTimeText;
 };

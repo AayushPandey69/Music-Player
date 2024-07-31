@@ -256,7 +256,8 @@ int main() {
     float buttonWidth = 80.0f;
     float buttonHeight = 80.0f;
 
-    playPauseButton.setScale(buttonWidth / playPauseButton.getLocalBounds().width, buttonHeight / playPauseButton.getLocalBounds().height);
+    playPauseButton.setScale(buttonWidth / playPauseButton.getLocalBounds().width, buttonHeight /
+     playPauseButton.getLocalBounds().height);
     nextButton.setScale(buttonWidth / nextButton.getLocalBounds().width, buttonHeight / nextButton.getLocalBounds().height);
     prevButton.setScale(buttonWidth / prevButton.getLocalBounds().width, buttonHeight / prevButton.getLocalBounds().height);
     shuffleButton.setScale(buttonWidth / shuffleButton.getLocalBounds().width, buttonHeight / shuffleButton.getLocalBounds().height);
