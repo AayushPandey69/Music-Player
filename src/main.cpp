@@ -4,9 +4,9 @@
 #include <vector>
 #include <string>
 #include <filesystem>
-#include "MusicPlayer.hpp"
-#include "GUI.hpp"
-#include "Utilities.hpp"
+#include "../header/MusicPlayer.hpp"
+#include "../header/GUI.hpp"
+#include "../header/Utilities.hpp"
 #include <algorithm>
 
 namespace fs = std::filesystem;

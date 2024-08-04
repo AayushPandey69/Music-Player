@@ -1,5 +1,5 @@
-#include "GUI.hpp"
-#include "Utilities.hpp"
+#include "../header/GUI.hpp"
+#include "../header/Utilities.hpp"
 #include <iostream>
 #include <algorithm>
 #include <cmath>
@@ -154,10 +154,7 @@ void GUI::updateTimeDisplay() {
                 progressBar.getPosition().y - currentTimeText.getLocalBounds().height - 5);
             totalTimeText.setPosition(progressBar.getPosition().x + progressBar.getSize().x + 10,
                 progressBar.getPosition().y - totalTimeText.getLocalBounds().height - 5);
-        } else {
-            currentTimeText.setString("--:--");
-            totalTimeText.setString("--:--");
-        }
+        } 
 }
 
 
@@ -224,7 +221,7 @@ void GUI::handleMouseClick(const sf::Event::MouseButtonEvent& mouseButton) {
     else if (sidebarTexts[1].getGlobalBounds().contains(mouseButton.x, mouseButton.y)) {
         currentPage = Page::NowPlaying;
     }
-    else if (progressBar.getGlobalBounds().contains(mouseButton.x, mouseButton.y) && player.getStatus() == sf::SoundSource::Playing) {
+    else if (progressBar.getGlobalBounds().contains(mouseButton.x, mouseButton.y)) {
         setProgressFromMouseClick(mouseButton.x);
     }
     else if (volumeSliderBackground.getGlobalBounds().contains(mouseButton.x, mouseButton.y)) {
@@ -261,7 +258,7 @@ void GUI::handleTextEntered(const sf::Event::TextEvent& text) {
     if (text.unicode == 8 && !searchQuery.empty()) { // Backspace
         searchQuery.pop_back();
     }
-    else if (text.unicode < 128) {
+    else if (text.unicode < 128 && text.unicode != 8) {
         searchQuery += static_cast<char>(text.unicode);
     }
     searchText.setString(searchQuery);
@@ -271,7 +268,6 @@ void GUI::handleTextEntered(const sf::Event::TextEvent& text) {
 void GUI::update() {
     if (player.hasStartedPlaying() && player.isCurrentSongFinished()) {
         player.next();
-        player.play();
         playPauseButton.setTexture(pauseTexture);
         currentSong = getBaseName(player.getCurrentSong());
         clickedSongIndex = player.getCurrentIndex();
@@ -339,7 +335,8 @@ void GUI::drawHomePage() {
         songButton.setFillColor(sf::Color(70, 70, 70));
 
         // Find the index of this song in the original music files
-        auto it = std::find(player.getMusicFiles().begin(), player.getMusicFiles().end(), displayFiles[i]);
+ 
+       auto it = std::find(player.getMusicFiles().begin(), player.getMusicFiles().end(), displayFiles[i]);
         if (it != player.getMusicFiles().end()) {
             size_t originalIndex = std::distance(player.getMusicFiles().begin(), it);
             if (originalIndex == clickedSongIndex) {
@@ -371,14 +368,21 @@ void GUI::drawNowPlayingPage() {
     songNameText.setFont(font);
     std::string wrappedSongName = wrapText(currentSong, 30);
     songNameText.setString(wrappedSongName);
-    songNameText.setCharacterSize(50);
+    songNameText.setCharacterSize(60);
     songNameText.setFillColor(sf::Color::White);
     songNameText.setPosition(contentArea.getPosition().x + (contentArea.getSize().x - songNameText.getLocalBounds().width) / 2,
         contentArea.getPosition().y + 50.0f);
     window.draw(songNameText);
 
-    // Determine which animation to show based on time
-    int animationIndex = static_cast<int>(clock.getElapsedTime().asSeconds() / 10) % 3;
+    // Only update the animation time when the song is playing
+    if (player.getStatus() == sf::SoundSource::Playing) {
+        animationTime += clock.restart().asSeconds();
+    } else {
+        clock.restart(); // Restart the clock but don't update animationTime
+    }
+
+    // Determine which animation to show based on animationTime
+    int animationIndex = static_cast<int>(animationTime / 10) % 3;
 
     switch (animationIndex) {
     case 0:
@@ -394,15 +398,15 @@ void GUI::drawNowPlayingPage() {
 }
 
 void GUI::drawBars() {
-    const int barCount = 20;
-    const float barWidth = 15.0f;
+    const int barCount = 30;
+    const float barWidth = 20.0f;
     const float maxBarHeight = 200.0f;
     const float spacing = 5.0f;
     const float startX = contentArea.getPosition().x + (contentArea.getSize().x - (barCount * (barWidth + spacing) - spacing)) / 2;
     const float startY = contentArea.getPosition().y + contentArea.getSize().y / 2 + maxBarHeight / 2;
 
     for (int i = 0; i < barCount; ++i) {
-        float height = (std::sin(clock.getElapsedTime().asSeconds() * 5 + i * 0.5f) + 1) * maxBarHeight / 2;
+        float height = (std::sin(animationTime * 5 + i * 0.5f) + 1) * maxBarHeight / 2;
         sf::RectangleShape bar(sf::Vector2f(barWidth, height));
         bar.setFillColor(sf::Color(29, 185, 84));
         bar.setPosition(startX + i * (barWidth + spacing), startY - height);
@@ -411,7 +415,7 @@ void GUI::drawBars() {
 }
 
 void GUI::drawSpectrum() {
-    const int pointCount = 100;
+    const int pointCount = 1000;
     sf::VertexArray spectrum(sf::LineStrip, pointCount);
     const float width = contentArea.getSize().x;
     const float height = 200.0f;
@@ -420,7 +424,7 @@ void GUI::drawSpectrum() {
 
     for (int i = 0; i < pointCount; ++i) {
         float x = startX + (static_cast<float>(i) / pointCount) * width;
-        float y = startY - std::sin(x * 0.05f + clock.getElapsedTime().asSeconds() * 5) * height / 2;
+        float y = startY - std::sin(x * 0.05f + animationTime * 5) * height / 2;
         spectrum[i].position = sf::Vector2f(x, y);
         spectrum[i].color = sf::Color(29, 185, 84);
     }
@@ -436,7 +440,7 @@ void GUI::drawSpectrum() {
         sf::Vector2f direction = point2 - point1;
         float length = std::sqrt(direction.x * direction.x + direction.y * direction.y);
 
-        thickLine.setSize(sf::Vector2f(length, 5.0f)); // Increased thickness to 5.0f
+        thickLine.setSize(sf::Vector2f(length, 5.0f));
         thickLine.setPosition(point1);
         thickLine.setRotation(std::atan2(direction.y, direction.x) * 180 / 3.14159f);
 
@@ -445,9 +449,9 @@ void GUI::drawSpectrum() {
 }
 
 void GUI::drawOscilloscope() {
-    const int pointCount = 200;
-    const int lineCount = 10; // Number of lines to draw for thickness
-    const float lineSpacing = 2.0f; // Spacing between lines
+    const int pointCount = 1000;
+    const int lineCount = 10;
+    const float lineSpacing = 2.0f;
     sf::VertexArray oscilloscope(sf::LineStrip, pointCount);
     const float width = contentArea.getSize().x;
     const float height = 200.0f;
@@ -457,9 +461,9 @@ void GUI::drawOscilloscope() {
     for (int line = 0; line < lineCount; ++line) {
         for (int i = 0; i < pointCount; ++i) {
             float x = startX + (static_cast<float>(i) / pointCount) * width;
-            float y = startY + std::sin(x * 0.1f + clock.getElapsedTime().asSeconds() * 10) * height / 4
-                + std::cos(x * 0.05f + clock.getElapsedTime().asSeconds() * 5) * height / 4;
-            y += line * lineSpacing - (lineCount - 1) * lineSpacing / 2; // Offset each line
+            float y = startY + std::sin(x * 0.1f + animationTime * 10) * height / 4
+                + std::cos(x * 0.05f + animationTime * 5) * height / 4;
+            y += line * lineSpacing - (lineCount - 1) * lineSpacing / 2;
             oscilloscope[i].position = sf::Vector2f(x, y);
             oscilloscope[i].color = sf::Color(29, 185, 84);
         }

@@ -1,4 +1,4 @@
-#include "Utilities.hpp"
+#include "../header/Utilities.hpp"
 #include <algorithm>
 #include <sstream>
 #include <cctype>
@@ -32,14 +32,21 @@ std::string wrapText(const std::string& text, unsigned int lineLength) {
 void filterMusicFiles(const std::vector<std::string>& musicFiles, const std::string& query, std::vector<std::string>& filtered) {
     filtered.clear();
     std::string lowercaseQuery = query;
-    std::transform(lowercaseQuery.begin(), lowercaseQuery.end(), lowercaseQuery.begin(),
-        [](unsigned char c){ return std::tolower(c); });
+
+    // Convert query to lowercase using a for loop
+    for (char& c : lowercaseQuery) {
+        c = std::tolower(static_cast<unsigned char>(c));
+    }
 
     for (const auto& file : musicFiles) {
         std::string lowercaseFile = getBaseName(file);
-        std::transform(lowercaseFile.begin(), lowercaseFile.end(), lowercaseFile.begin(),
-            [](unsigned char c){ return std::tolower(c); });
 
+        // Convert file name to lowercase using a for loop
+        for (char& c : lowercaseFile) {
+            c = std::tolower(static_cast<unsigned char>(c));
+        }
+
+        // Check if the lowercase query is a substring of the lowercase file name
         if (lowercaseFile.find(lowercaseQuery) != std::string::npos) {
             filtered.push_back(file);
         }

@@ -1,4 +1,4 @@
-#include "MusicPlayer.hpp"
+#include "../header/MusicPlayer.hpp"
 #include <iostream>
 #include <algorithm>  // Include this for std::shuffle
 
@@ -57,6 +57,7 @@ void MusicPlayer::previous() {
     music.setLoop(isLooping);
     music.play();
 }
+
 bool MusicPlayer::isCurrentSongFinished() const {
     return music.getStatus() == sf::SoundSource::Stopped;
 }
@@ -95,7 +96,6 @@ void MusicPlayer::playSong(size_t index) {
             std::cerr << "Error loading music file: " << musicFiles[currentIndex] << std::endl;
         }
         music.setLoop(isLooping);
-        // Note: We're not calling play() here
     }
 }
 
